@@ -38,7 +38,9 @@ cd /_STAGE_01
 , если все OК, то кросскомпилятор собран и лежит /_STAGE_01/crosstool,
 а собранная им target-система  лежит /_STAGE_01/_st1_sysroot
 
+
 Далее уровень _STAGE_2
+
 Смотрим /_STAGE_01/_st1_sysroot/_mk_st2/README.md
 и /_STAGE_01/_st1_sysroot/_mk_st2/2b_st2
 
