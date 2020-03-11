@@ -1,0 +1,152 @@
+#!/bin/sh -e
+GCC4=$1
+LIB_GMP=$2
+LIB_MPFR=$3
+LIB_MPC=$4
+
+CWD=$PWD
+VERSION=${VERSION:-$(echo $GCC4.tar.*z | rev | cut -f 3- -d . | cut -f 1 -d - | rev)}
+TARGET=$ID_TARGET
+BUILD=${BUILD:-st1}
+PKG=$TMP/$GCC4-package
+
+unpack_src $SRC $GCC4 $TMP
+unpack_src $SRC $LIB_GMP $TMP
+unpack_src $SRC $LIB_MPFR $TMP
+unpack_src $SRC $LIB_MPC $TMP
+mv $TMP/$LIB_GMP $TMP/$GCC4/gmp
+mv $TMP/$LIB_MPFR $TMP/$GCC4/mpfr
+mv $TMP/$LIB_MPC $TMP/$GCC4/mpc
+
+
+cd $TMP/$GCC4
+bzcat $CWD/patches/*.patch* | patch -p1
+bzcat $CWD/patches/*.diff*  | patch -p1
+rm -rf $TMP/$GCC4/libjava/*
+rm -rf $TMP/$GCC4/libjava
+rm -rf $TMP/$GCC4/gcc/libjava/*
+rm -rf $TMP/$GCC4/gcc/libjava
+rm -rf $TMP/$GCC4/gcc/java/*
+rm -rf $TMP/$GCC4/gcc/java
+
+rm  -rf  $TMP/$GCC4-build
+mkdir -p $TMP/$GCC4-build
+cd $TMP/$GCC4-build
+
+#LDFLAGS="$LDFLAGS --static" \
+#CFLAGS="$CFLAGS -static" \
+../$GCC4/configure \
+    --prefix=/usr  \
+    --libdir=/usr/lib$LIBDIRSUFFIX \
+    --disable-multiarch \
+    --disable-multilib  \
+    --enable-languages=c,c++,lto \
+    --enable-shared \
+    --enable-lto \
+    --enable-libgomp \
+    --enable-libquadmath \
+    --enable-libstdc++-v3 \
+    --with-long-double-128 \
+--with-mpfr-include=$(pwd)/mpfr/src  --with-mpfr-lib=$(pwd)/mpfr/src/.libs  \
+--disable-bootstrap \
+--host=$ID_TARGET --build=$ID_TARGET
+
+#--host=$ID_HOST --build=$ID_BUILD --target=$ID_TARGET  \
+
+
+LDFLAGS="$LDFLAGS" \
+make $NUMJOBS
+# configure-host 
+
+LDFLAGS="$LDFLAGS" \
+make  $NUMJOBS 
+
+rm -rf $PKG && mkdir -p $PKG
+make install DESTDIR=$PKG
+
+cd  $TMP/$GCC4-build/gcc
+make $NUMJOBS
+make info
+
+# Be sure the "specs" file is installed.
+if [ ! -r $PKG/usr/lib${LIBDIRSUFFIX}/gcc/${TARGET}/${VERSION}/specs ]; then
+  cp -p  specs  $PKG/usr/lib${LIBDIRSUFFIX}/gcc/${TARGET}/${VERSION}/specs || true
+fi
+chmod 755 $PKG/usr/lib${LIBDIRSUFFIX}/libgcc_s.so.1
+# Set GCCCHECK=something to run the tests
+if [ ! -z $GCCCHECK ]; then
+    make $NUMJOBS check
+fi
+make install DESTDIR=$PKG
+
+cd $TMP/$GCC4-build; make install DESTDIR=$PKG
+
+cd  $TMP/$GCC4-build/gmp; make install DESTDIR=$PKG
+
+cd  $TMP/$GCC4-build/mpfr; make install DESTDIR=$PKG
+
+cd  $TMP/$GCC4-build/mpc; make install DESTDIR=$PKG
+
+cd  $TMP/$GCC4-build/intl; make install DESTDIR=$PKG
+
+cd  $TMP/$GCC4-build/libcpp; make install DESTDIR=$PKG
+
+cd  $TMP/$GCC4-build/libdecnumber; make install DESTDIR=$PKG
+
+
+cd $PKG/usr/bin && ln -sf ../libexec/gcc/*/*/cc1   cc1
+
+
+
+rm -f $PKG/usr/lib${LIBDIRSUFFIX}/*gdb.py
+
+rm -f $PKG/usr/lib${LIBDIRSUFFIX}/libiberty.a
+rm -f $PKG/usr/lib/libiberty.a
+
+# Fix stuff up:
+( cd $PKG
+  # *not* ${LIBDIRSUFFIX}
+  mkdir -p lib
+  cd lib
+  ln -sf /usr/bin/cpp .
+)
+
+( cd $PKG/usr/bin
+  mv g++ g++-gcc-$VERSION
+  mv gcc gcc-$VERSION
+  ln -sf g++-gcc-$VERSION g++
+  ln -sf gcc-$VERSION gcc
+  ln -sf g++ c++
+  ln -sf gcc cc
+  ln -sf gcc-$VERSION ${TARGET}-gcc
+  ln -sf gcc-$VERSION ${TARGET}-gcc-$VERSION
+  ln -sf gcc-ar ${TARGET}-gcc-ar
+  ln -sf gcc-nm ${TARGET}-gcc-nm
+  ln -sf gcc-ranlib ${TARGET}-gcc-ranlib
+  ln -sf g++-gcc-$VERSION ${TARGET}-c++
+  ln -sf g++-gcc-$VERSION ${TARGET}-g++
+)
+
+# Filter all .la files (thanks much to Mark Post for the sed script):
+( cd $PKG
+  for file in $(find . -type f -name "*.la") ; do
+    cat $file | sed -e 's%-L/gcc-[[:graph:]]* % %g' > $TMP/tmp-la-file
+    cat $TMP/tmp-la-file > $file
+  done
+  rm -rf $TMP/tmp-la-file
+)
+
+## Strip bloated binaries and libraries and makepkg:
+( cd $PKG
+    find . -name "lib*so*" -exec strip --strip-unneeded "{}" \;
+    find . -name "lib*a" -exec strip -g "{}" \;
+    strip --strip-unneeded usr/bin/* 2> /dev/null
+    find . | xargs file | grep "executable" | grep ELF | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true
+    find . | xargs file | grep "shared object" | grep ELF | cut -f 1 -d : | xargs strip --strip-unneeded 2> /dev/null || true
+)
+
+( cd $PKG
+    mkdir -p $PKG/install
+    cp $CWD/slack-desc.gcc  $PKG/install/slack-desc
+    makepkg -l y -c n $TMP/gcc-$VERSION-$ARCH-$BUILD.txz
+)

@@ -1,0 +1,24 @@
+unset sysroot
+sysroot=$1
+mountpoint -q $sysroot || rm -rf $sysroot
+
+mkdir -p  $sysroot
+cd $sysroot
+tar -Jxf   $TOP/01_mk_crosstool/00/aaa_base-*.txz
+
+cd $sysroot; rm -rf $sysroot/lib64; ln -sf lib lib64
+cd $sysroot/usr
+rm -rf $sysroot/usr/lib64; ln -sf lib lib64
+
+mkdir -p $sysroot/usr/$TOOLS_PREFIX
+cd $sysroot/usr/$TOOLS_PREFIX
+ln -sf ../lib lib
+ln -sf lib lib64
+ln -sf ../include sys-include
+
+cp -fL  /usr/share/*.ids $sysroot/usr/share/ || true
+cp -rf /usr/share/hwdata/*  $sysroot/usr/share/ || true
+cd $sysroot
+tar -xf   $TOP/utils/pkgtools-*.t?z
+
+$sysroot/sbin/makepkg -l y -c n  $P/aaa_base-st0.txz

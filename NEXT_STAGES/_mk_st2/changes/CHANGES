@@ -1,0 +1,12 @@
+Изменения относительно скаченой ветки Slackware64-current:
+
+в  a/ /ap d/ l/ /n - измененные SlackBuild-ы
+
+lzip*.lz  перепакован в tar.gz
+
+дополнительно gmp-6.1.2.tar.bz2 скачан в _mk_st2/source/
+
+
+cd /usr/bin
+ln python3 python
+ln python3 python2

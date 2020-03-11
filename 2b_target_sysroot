@@ -1,0 +1,110 @@
+#!/bin/sh -e
+set -e -x
+. ./utils/functions
+
+unset TOP TMP SRC R P
+export TOP=$PWD
+export TMP=$TOP/tmp
+export SRC=$TOP/source
+export R=$TOP/crosstool
+export P=$TOP/packages
+
+unset ARCH MARCH HOST BUILD TARGET VER_TARGET_BUILD
+unset HOST_ARCH BUILD_ARCH TARGET_ARCH
+unset HOST_MARCH BUILD_MARCH TARGET_MARCH
+unset ID_HOST ID_BUILD ID_TARGET
+unset TOOLS_PREFIX CPU_CORES
+unset HOSTCC HOST_CFLAGS BUILD_CFLAGS TARGET_CFLAGS 
+unset LDFLAGS LIBDIRSUFFIX
+
+export HOST_MARCH="x86_64" BUILD_MARCH="x86_64" TARGET_MARCH="x86_64"
+export LIBDIRSUFFIX="64" build_suffix="64"
+export ID_HOST=$BUILD_MARCH-slackware-linux
+export ID_BUILD=$ID_HOST
+export ID_TARGET=$TARGET_MARCH-reslackware-linux
+export TOOLS_PREFIX=$ID_TARGET
+export HOST_CFLAGS="-Wno-error -m64 -O0 "
+export BUILD_CFLAGS=$HOST_CFLAGS
+export TARGET_CFLAGS="-Wno-error -m64 -O0 "
+export CPU_CORES=1
+export LC_ALL=C
+
+unset GNU_LINUX_VER GNU_LIBC_VER
+unset GNU_BINUTILS_VER  GNU_GCC_VER  LIB_GMP_VER LIB_MPC_VER LIB_MPFR_VER
+unset BUSYBOX_VER GNU_MAKE_VER
+export GNU_LINUX_VER=linux-4.4.211
+export GNU_LIBC_VER=glibc-2.20
+export GNU_BINUTILS_VER=binutils-2.24.51.0.3
+
+export GNU_GCC_VER=gcc-4.7.4
+export LIB_GMP_VER=gmp-6.1.2
+export LIB_MPFR_VER=mpfr-3.1.5
+export LIB_MPC_VER=mpc-1.1.0
+export BUSYBOX_VER=busybox-1.22.1
+export GNU_MAKE_VER=make-3.81
+
+
+##############################################################################
+##############################################################################
+##############################################################################
+cd $TOP
+rm -rf $TMP $R; mkdir -p $TMP $R $P
+. $TOP/mk_crosstool
+cd $TOP/crosstool
+ln -sf usr/bin/$TOOLS_PREFIX-cpp lib/cpp
+###############################################################################
+cd $TOP
+. $TOP/mk_target_pkgs
+###############################################################################
+###############################################################################
+unset  TARGET_SYSROOT
+export TARGET_SYSROOT=$TOP/st1_sysroot
+/sbin/installpkg --root $TARGET_SYSROOT $P/aaa_base-st0.txz 
+/sbin/installpkg --root $TARGET_SYSROOT $P/etc-reslack-st0.txz 
+/sbin/installpkg --root $TARGET_SYSROOT $P/kernel-headers-linux*.txz 
+/sbin/installpkg --root $TARGET_SYSROOT $P/busybox*-$TARGET_MARCH-st1.txz 
+/sbin/installpkg --root $TARGET_SYSROOT $P/make*-$TARGET_MARCH-st1.txz 
+/sbin/installpkg --root $TARGET_SYSROOT $P/binutils*-$TARGET_MARCH-st1.txz 
+/sbin/installpkg --root $TARGET_SYSROOT $P/glibc-*.txz 
+/sbin/installpkg --root $TARGET_SYSROOT $P/gcc-*-st1.txz 
+#########################################################################
+
+
+cd $TARGET_SYSROOT/usr/bin
+for i in addr2line  ar as c++ c++filt elfedit g++ gcc gcc-ar gcc-nm gcc-ranlib \
+    gprof ld ld.bfd nm objcopy objdump ranlib readelf size strings strip; do
+    if test -f $TOOLS_PREFIX-$i ; then
+	test -f $i || ln -sf  $TOOLS_PREFIX-$i  $i
+    fi
+done
+
+cd $TARGET_SYSROOT/usr/bin ; ln -sf ${TOOLS_PREFIX}-gcc rawcc
+
+cp -rnd $TARGET_SYSROOT/bin/* $TARGET_SYSROOT/usr/bin/
+rm -rf $TARGET_SYSROOT/bin/*
+ln -sf gcc cc
+
+cd $TARGET_SYSROOT/bin
+unset i
+for i in $(ls -1 $TARGET_SYSROOT/usr/bin) ; do
+    if $(test -L $TARGET_SYSROOT/usr/bin/$i && ! test -f $i)  ; then
+	ln -s ../usr/bin/$i $i
+    fi
+done
+
+cp -p $P/rev $TARGET_SYSROOT/usr/bin/ || true
+cp $TOP/utils/*chroot* $TARGET_SYSROOT
+cp -r $TOP/NEXT_STAGES/_mk_st2 $TARGET_SYSROOT
+cd $TOP
+###############################################################################
+unset TOP TMP SRC R P TARGET_SYSROOT
+unset ARCH MARCH HOST BUILD TARGET VER_TARGET_BUILD
+unset HOST_ARCH BUILD_ARCH TARGET_ARCH
+unset HOST_MARCH BUILD_MARCH TARGET_MARCH
+unset ID_HOST ID_BUILD ID_TARGET
+unset TOOLS_PREFIX CPU_CORES
+unset HOSTCC HOST_CFLAGS BUILD_CFLAGS TARGET_CFLAGS
+unset LDFLAGS LIBDIRSUFFIX build_suffix
+unset GNU_LINUX_VER GNU_LIBC_VER
+unset GNU_BINUTILS_VER  GNU_GCC_VER  LIB_GMP_VER LIB_MPC_VER LIB_MPFR_VER
+unset BUSYBOX_VER GNU_MAKE_VER

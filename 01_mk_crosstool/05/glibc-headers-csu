@@ -1,0 +1,88 @@
+#!/bin/sh -e
+GNU_LIBC=$1
+unset CWD; CWD=$PWD
+unset PKG; PKG=$TMP/$GNU_LIBC-headers-csu-package
+unpack_src $SRC $GNU_LIBC $TMP
+
+cd $TMP/$GNU_LIBC
+cat $CWD/patches/p0/*.diff | patch -p0 -t || true
+bzcat $CWD/patches/p0/*.diff*.bz2  | patch -p0 -t || true
+cat $CWD/patches/*.patch | patch -p1 -t || true
+cat $CWD/patches/*.diff  | patch -p1 -t || true
+zcat $CWD/patches/*.patch.gz  | patch -p1 -f || true 
+#cd $TMP/$GNU_LIBC/timezone && tar xf $CWD/timezone/tzcode*.tar.gz
+#cd $TMP/$GNU_LIBC/timezone; tar xf $CWD/timezone/tzdata*.tar.gz
+
+rm -rf   $TMP/$GNU_LIBC-build
+mkdir -p $TMP/$GNU_LIBC-build
+cd $TMP/$GNU_LIBC-build
+
+rm -f config.cache
+#echo "ac_cv_path_BASH_SHELL=/bin/bash" >>config.cache
+echo "libc_cv_cleanup=yes"		 >>config.cache
+echo "libc_cv_c_cleanup=yes"		>>config.cache
+echo "libc_cv_forced_unwind=yes" 	>>config.cache
+#echo "libc_cv_gnu89_inline=yes"		>>config.cache
+echo "libc_cv_header=yes"		>>config.cache
+echo "libc_cv_ctors_header=yes"		>>config.cache
+echo "l_free_initfini=set"	>>config.cache
+echo "libc_cv_have_initfini=yes"	>>config.cache
+echo "libc_cv_initfini_array=yes"	>>config.cache
+echo "libc_cv_z_nodelete=yes"		>>config.cache
+echo "libc_cv_cc_with_libunwind=yes"	>>config.cache
+echo "libc_cv_visibility_attribute=yes"	>>config.cache
+echo "libc_cv_mlong_double_128=yes"	>>config.cache
+
+#BUILD_CC=/usr/bin/gcc \
+PATH="$R/usr/bin:$PATH" \
+CC="$R/usr/bin/$TOOLS_PREFIX-gcc" \
+AR="$R/usr/bin/$TOOLS_PREFIX-ar" \
+LD="$R/usr/bin/$TOOLS_PREFIX-ld" \
+CPP="$R/usr/bin/$TOOLS_PREFIX-cpp" \
+RANLIB="$R/usr/bin/$TOOLS_PREFIX-ranlib" \
+CFLAGS="$CFLAGS -O1 -static" \
+../$GNU_LIBC/configure \
+    --prefix=/usr  \
+    --disable-profile \
+    --disable-versioning \
+    --disable-nls \
+    --without-cvs \
+    --without-gd \
+    --disable-multilib \
+--with-headers=$R/usr/include \
+--with-binutils=$R/usr/bin \
+--with-tls  --with-__thread \
+--cache-file=config.cache \
+--enable-add-ons  \
+--build=$ID_BUILD --host=$ID_TARGET  \
+--disable-multiarch \
+--with-sysroot=$R
+
+
+rm -rf $PKG;
+mkdir -p $PKG/usr/lib
+mkdir -p $PKG/usr/lib$build_suffix
+
+cd $TMP/$GNU_LIBC-build
+
+PATH="$R/usr/bin:$PATH" \
+make  \
+    cross-compiling=yes \
+    install-headers  \
+    install-bootstrap-headers=yes \
+    install_root=$PKG
+
+mkdir -p "$PKG/usr/include/bits"
+mkdir -p "$PKG/usr/include/gnu"
+cp -p  $TMP/$GNU_LIBC-build/bits/stdio_lim.h $PKG/usr/include/bits/ || true
+cp -p  $TMP/$GNU_LIBC/include/features.h     $PKG/usr/include/
+cp -p  $TMP/$GNU_LIBC/include/gnu/stubs.h    $PKG/usr/include/gnu/ ||
+touch $PKG/usr/include/gnu/stubs.h
+
+PATH="$R/usr/bin:$PATH" \
+make csu csu/subdir_lib
+cp -p csu/crt1.o csu/crti.o csu/crtn.o $PKG/usr/lib$build_suffix
+cp -p csu/*.o  $PKG/usr/lib$build_suffix
+cd $PKG
+/sbin/makepkg -l y -c n $P/$GNU_LIBC-headers-csu-$TARGET_MARCH.txz
+

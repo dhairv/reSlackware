@@ -1,0 +1,11 @@
+#!/bin/sh
+cd /usr/bin
+ln -sf busybox test
+ln -sf bash sh
+
+for i in $(./busybox --list);do
+    test -e $i || ln -s busybox $i
+done
+
+cd /bin 
+ln -sf ../usr/bin/sh sh

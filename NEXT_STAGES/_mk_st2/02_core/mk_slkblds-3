@@ -1,0 +1,30 @@
+#!/bin/sh
+unset SLKCFLAGS SLKLDFLAGS
+export SLKCFLAGS="$CFLAGS"
+export SLKLDFLAGS="$LDFLAGS"
+cd $TOP
+
+unset PKGNAME
+for PKGNAME in aaa_terminfo acpid bin lvm2 json-c argon2 cryptsetup dcron devs \
+    dialog e2fsprogs genpower getty-ps gpm gptfdisk hdparm infozip inotify-tools \
+    libatasmart libcgroup logrotate  mcelog mdadm mtx os-prober \
+    parted pciutils  procps-ng rpm2tgz sdparm sg3_utils slocate \
+    smartmontools splitvt sysklogd time usb_modeswitch \
+    utempter which xfsprogs kbd tcl apmd yasm lrzip \
+    bash make binutils file tar dialog libarchive libcap logragate \
+    cmake mc  dbus dbus-glib \
+    acl acpid attr etc kbd hdparm sdparm libgudev findutils inotify-tools  \
+    pciutils sharutils smartmontools sysfsutils  \
+    sysfsutils sysvinit sysvinit-functions  sysvinit-scripts \
+    hwdata usb_modeswitch usbutils utempter procps-ng \
+; do
+    for filename in $(find $SRC -name "$PKGNAME".SlackBuild) ; do
+	BLDNAME=$(echo $filename | rev | cut -f 1 -d / | rev ) 
+	bash $filename
+	if [  $? == 0  ] ; then
+	    echo "$filename" >> $TOP/order_build.stamp
+	    cd $TMP
+	    upgradepkg "$TMP/$PKGNAME"*.t?z ||  installpkg "$TMP/$PKGNAME"*.t?z
+	fi
+    done
+done

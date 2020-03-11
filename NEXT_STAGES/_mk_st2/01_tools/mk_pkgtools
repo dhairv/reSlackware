@@ -1,0 +1,20 @@
+#!/bin/sh
+unset CWD; CWD=$PWD
+unset SLKCFLAGS SLKLDFLAGS
+export SLKCFLAGS=$CFLAGS
+export SLKLDFLAGS="$LDFLAGS"
+export LIBDIRSUFFIX="64"
+
+ash $SRC/a/tar/tar.SlackBuild || true
+cp -rdf  $TMP/package-tar/* / || true
+
+for PKGNAME in  lzip bash gzip xz coreutils patch ; do
+    for filename in $(find $SRC -name $PKGNAME*.tar.?z*) ; do
+	PKGNAME_VER=$(echo $filename | sed 's/.tar.*//' | rev | cut -f 1 -d / | rev | sed 's/.?z*//' )
+	. $TOP/01_tools/pattern1.rc  $PKGNAME_VER
+	cd $CWD
+    done
+done
+echo OK!
+exit
+

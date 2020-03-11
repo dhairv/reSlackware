@@ -1,0 +1,73 @@
+#!/bin/sh -e
+
+unset CFLAGS CPPFLAGS CXXFLAGS LDFLAGS  LEVEL_01
+export CFLAGS="$HOST_CFLAGS"
+export LDFLAGS="$LDFLAGS  -L$R/usr/lib$build_suffix"
+
+LEVEL_01=$TOP/01_mk_crosstool
+cd $LEVEL_01
+########################################################################
+.  $LEVEL_01/00/mk_base_fs_tree $R
+/sbin/installpkg --root $R $P/aaa_base*.txz 
+########################################################################
+.  $LEVEL_01/01/mk_etc
+/sbin/installpkg --root $R $P/etc-reslack-st0.txz 
+#########################################################################
+cd $LEVEL_01/02; . ./gnu_binutils 		$GNU_BINUTILS_VER
+/sbin/installpkg --root $R $P/$GNU_BINUTILS_VER-$TOOLS_PREFIX-st0-1.txz 
+cd $LEVEL_01/02; . ./libiberty		$GNU_BINUTILS_VER
+/sbin/installpkg --root $R $P/$GNU_BINUTILS_VER-libiberty-$TOOLS_PREFIX-st0-1.txz 
+
+export AR_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-ar" 
+export AS_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-as" 
+export LD_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-ld" 
+export NM_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-nm" 
+export CPP_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-cpp" 
+export CXX_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-g++" 
+export OBJDUMP_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-objdump" 
+export RANLIB_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-ranlib" 
+export READELF_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-readelf" 
+export STRIP_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-strip" 
+export GCOV_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-gcov" 
+export READELF_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-readelf" 
+export ELFEDIT_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-elfedit" 
+#########################################################################
+cd $LEVEL_01/03; . ./gcc_pass_1	$GNU_GCC_VER $LIB_GMP_VER $LIB_MPFR_VER $LIB_MPC_VER
+/sbin/installpkg --root $R $P/$GNU_GCC_VER-$TOOLS_PREFIX-st0-1.txz 
+
+export GCC_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-gcc" 
+export CC_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-gcc" 
+
+######################################################################
+cd $LEVEL_01/04; . ./kernel_headers		$GNU_LINUX_VER
+/sbin/installpkg --root $R  $P/kernel-headers*.txz 
+export CFLAGS="$CFLAGS -I./ -I$R/usr/include"
+########################################################################
+export ORIGINAL_AS_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-as"
+export ORIGINAL_LD_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-ld"
+export ORIGINAL_PLUGIN_LD_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-ld"
+export ORIGINAL_NM_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-nm"
+export ORIGINAL_CPP_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-cpp"
+export ORIGINAL_CXX_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-g++"
+
+cd $LEVEL_01/05; . ./glibc-headers-csu 		$GNU_LIBC_VER
+/sbin/installpkg --root $R  $P/$GNU_LIBC_VER-headers-csu-$TARGET_MARCH.txz 
+$R/usr/bin/$TOOLS_PREFIX-gcc -nostdlib -nostartfiles -x c /dev/null -o $R/usr/lib$build_suffix/libc.so 
+#########################################################################
+#########################################################################
+#cd $LEVEL_01/06; . ./gcc_pass_2		$GNU_GCC_VER $LIB_GMP_VER $LIB_MPFR_VER $LIB_MPC_VER
+
+cd $LEVEL_01/07; . ./glibc 		$GNU_LIBC_VER
+/sbin/installpkg --root $R  $P/$GNU_LIBC_VER-$TARGET_MARCH-st0-st1.txz 
+cd $R/usr/lib ; ln -sf ../../lib/libcrypt.a libcrypt.a || true
+########################################################################
+#########################################################################
+cd $LEVEL_01/08; . ./gcc_pass_3		$GNU_GCC_VER $LIB_GMP_VER $LIB_MPFR_VER $LIB_MPC_VER
+/sbin/installpkg --root $R $P/$GNU_GCC_VER-$TOOLS_PREFIX-st0-3.txz 
+#########################################################################
+
+cd $LEVEL_01
+unset CFLAGS CPPFLAGS CXXFLAGS LDFLAGS
+unset ORIGINAL_AS_FOR_TARGET ORIGINAL_LD_FOR_TARGET ORIGINAL_PLUGIN_LD_FOR_TARGET 
+unset ORIGINAL_NM_FOR_TARGET ORIGINAL_CPP_FOR_TARGET ORIGINAL_CXX_FOR_TARGET
+unset LEVEL_01

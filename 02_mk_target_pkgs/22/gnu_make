@@ -1,0 +1,39 @@
+#!/bin/sh -e
+GNU_MAKE=$1
+unset CWD; CWD=$PWD
+unset PKG; PKG=$TMP/$GNU_MAKE-package
+unpack_src $SRC $GNU_MAKE $TMP
+cd $TMP/$GNU_MAKE
+cat $CWD/patches/p0/*.patch* | patch -p0
+cat $CWD/patches/p0/*.diff*  | patch -p0
+cat $CWD/patches/*.patch* | patch -p1
+cat $CWD/patches/*.diff*  | patch -p1
+
+rm  -rf  $TMP/$GNU_MAKE-build
+mkdir -p $TMP/$GNU_MAKE-build
+
+cd $TMP/$GNU_MAKE-build
+CC="$R/usr/bin/$TOOLS_PREFIX-gcc" \
+CPP="$R/usr/bin/$TOOLS_PREFIX-cpp" \
+AR="$R/usr/bin/$TOOLS_PREFIX-ar" \
+LD="$R/usr/bin/$TOOLS_PREFIX-ld" \
+RANLIB="$R/usr/bin/$TOOLS_PREFIX-ranlib" \
+CFLAGS="$CFLAGS -static" \
+../$GNU_MAKE/configure  \
+    --prefix=/usr   \
+    --disable-nls \
+    --build=$ID_BUILD --host=$ID_TARGET
+
+PATH="$R/usr/bin:$PATH" \
+LDFLAGS="$LDFLAGS --static" \
+make cross-compiling=yes \
+
+rm -rf $PKG && mkdir -p $PKG
+
+PATH="$R/usr/bin:$PATH" \
+LDFLAGS="$LDFLAGS --static" \
+make DESTDIR=$PKG install
+
+cd $PKG
+/sbin/makepkg -l y -c n $P/$GNU_MAKE-$TARGET_MARCH-st1.txz
+

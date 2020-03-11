@@ -1,0 +1,37 @@
+#!/bin/sh -e
+GNU_BINUTILS=$1
+unset CWD; CWD=$PWD
+unset PKG ; PKG=$TMP/$GNU_BINUTILS-package
+unpack_src $SRC $GNU_BINUTILS $TMP
+cd $TMP/$GNU_BINUTILS
+bzcat $CWD/patches/*.patch* | patch -p1
+bzcat $CWD/patches/*.diff*  | patch -p1
+
+rm -rf   $TMP/$GNU_BINUTILS-build
+mkdir -p $TMP/$GNU_BINUTILS-build
+cd $TMP/$GNU_BINUTILS-build
+
+../$GNU_BINUTILS/configure  \
+    --prefix=$R/usr  \
+    --disable-werror \
+    --disable-nls  \
+    --enable-initfini-arrays \
+--disable-multilib  \
+--host=$ID_HOST --target=$ID_TARGET  \
+--with-lib-path=$R/usr/lib$build_suffix \
+--with-sysroot=$R/
+
+#--with-sysroot=$R/usr
+#--with-build-sysroot=$R/usr \
+
+
+make configure-host
+make cross-compiling=yes
+
+rm -rf $PKG ; mkdir -p $PKG/$R/usr/lib$build_suffix
+make  DESTDIR=$PKG   install 
+
+cd $PKG/$R
+/sbin/makepkg -l y -c n $P/$GNU_BINUTILS-$TOOLS_PREFIX-st0-1.txz
+
+

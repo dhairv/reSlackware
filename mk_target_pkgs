@@ -1,0 +1,77 @@
+#!/bin/sh -e
+
+unset  LEVEL_02
+LEVEL_02=$TOP/02_mk_target_pkgs
+cd $LEVEL_02
+
+unset CFLAGS CPPFLAGS CXXFLAGS HOST_CFLAGS CC HOSTCC LDFLAGS ARCH MARCH
+export CFLAGS_FOR_TARGET="$TARGET_CFLAGS"
+export CXXFLAGS_FOR_TARGET=$TARGET_CFLAGS 
+export LDFLAGS=""
+
+##########################################################################
+export AR_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-ar"
+export AS_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-as"
+export LD_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-ld"
+export NM_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-nm"
+export CPP_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-cpp"
+export OBJDUMP_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-objdump"
+export RANLIB_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-ranlib"
+export READELF_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-readelf"
+export STRIP_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-strip"
+export GCOV_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-gcov"
+export READELF_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-readelf"
+export ELFEDIT_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-elfedit"
+#########################################################################
+export GCC_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-gcc"
+export CC_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-gcc"
+export CXX_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-g++"
+######################################################################
+export ORIGINAL_AS_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-as"
+export ORIGINAL_LD_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-ld"
+export ORIGINAL_PLUGIN_LD_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-ld"
+export ORIGINAL_NM_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-nm"
+export ORIGINAL_CPP_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-cpp"
+#########################################################################
+export AR="$R/usr/bin/$TOOLS_PREFIX-ar" 
+export AS="$R/usr/bin/$TOOLS_PREFIX-as" 
+export LD="$R/usr/bin/$TOOLS_PREFIX-ld" 
+export NM="$R/usr/bin/$TOOLS_PREFIX-nm" 
+export OBJDUMP="$R/usr/bin/$TOOLS_PREFIX-objdump" 
+export RANLIB="$R/usr/bin/$TOOLS_PREFIX-ranlib" 
+export READELF="$R/usr/bin/$TOOLS_PREFIX-readelf" 
+export STRIP="$R/usr/bin/$TOOLS_PREFIX-strip" 
+export GCOV="$R/usr/bin/$TOOLS_PREFIX-gcov" 
+export READELF="$R/usr/bin/$TOOLS_PREFIX-readelf" 
+export ELFEDIT="$R/usr/bin/$TOOLS_PREFIX-elfedit" 
+
+export HOSTCC="$R/usr/bin/$TOOLS_PREFIX-gcc" #
+export CC=$HOSTCC #
+
+export GCC="$R/usr/bin/$TOOLS_PREFIX-gcc"
+export CXX="$R/usr/bin/$TOOLS_PREFIX-g++"
+export CPP="$R/usr/bin/$TOOLS_PREFIX-cpp"
+
+export CFLAGS="$CFLAGS -I./ -I$R/usr/include -I$R/usr/include"
+export LDFLAGS="$LDFLAGS -L$R/lib$LIBDIRSUFFIX -L$R/usr/lib$LIBDIRSUFFIX "
+
+##########################################################################
+#cd $LEVEL_02/21; . ./busybox 		$BUSYBOX_VER
+##########################################################################
+#cd  $LEVEL_02/22; . ./gnu_make 		$GNU_MAKE_VER
+#########################################################################
+#cd $LEVEL_02/23; . ./gnu_binutils 	$GNU_BINUTILS_VER
+########################################################################
+#cd $LEVEL_02/24; . ./gcc_for_target	$GNU_GCC_VER $LIB_GMP_VER $LIB_MPFR_VER $LIB_MPC_VER
+#########################################################################
+
+cp -p $LEVEL_02/25/rev.c $TMP || true
+cd $TMP
+$R/usr/bin/$TOOLS_PREFIX-gcc rev.c -o rev || true
+cp -p rev $P || true
+########################################################################
+mv -f $TMP/*-st1.txz $P || true
+
+cd $LEVEL_02
+unset CFLAGS CPPFLAGS CXXFLAGS HOSTCC LDFLAGS ARCH MARCH
+unset LEVEL_02

@@ -1,0 +1,85 @@
+#!/bin/sh -e
+GNU_BINUTILS=$1
+unset CWD; CWD=$PWD
+unset PKG ; PKG=$TMP/$GNU_BINUTILS-package
+unpack_src $SRC $GNU_BINUTILS $TMP
+cd $TMP/$GNU_BINUTILS
+bzcat $CWD/patches/*.patch* | patch -p1
+bzcat $CWD/patches/*.diff*  | patch -p1
+#rm -rf libiberty
+#cp -Rp $TMP/binutils-2.27.90/libiberty .
+
+rm -rf   $TMP/$GNU_BINUTILS-build
+mkdir -p $TMP/$GNU_BINUTILS-build
+cd $TMP/$GNU_BINUTILS-build
+
+rm -rf $PKG
+mkdir -p $PKG/usr/lib
+mkdir -p $PKG/usr/lib$LIBDIRSUFFIX
+
+AR_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-ar" \
+AS_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-as" \
+LD_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-ld" \
+NM_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-nm" \
+CPP_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-cpp" \
+CXX_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-g++" \
+OBJDUMP_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-objdump"  \
+RANLIB_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-ranlib"  \
+READELF_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-readelf" \
+STRIP_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-strip" \
+GCOV_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-gcov" \
+READELF_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-readelf" \
+ELFEDIT_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-elfedit" \
+GCC_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-gcc" \
+CC_FOR_TARGET="$R/usr/bin/$TOOLS_PREFIX-gcc" \
+CFLAGS="$CFLAGS  -static -I./ -I$R/usr/include" \
+../$GNU_BINUTILS/configure  \
+    --prefix=/usr  \
+    --disable-werror \
+    --disable-nls  \
+--enable-initfini-arrays \
+-build=$ID_BUILD --host=$ID_TARGET --target=$ID_TARGET  \
+-with-lib-path=$R/lib$LIBDIRSUFFIX \
+--disable-multilib --disable-multiarch \
+--with-sysroot=$R
+
+#-with-lib-path=$TARGET_SYSROOT/lib$LIBDIRSUFFIX \
+
+#--with-sysroot=$TARGET_SYSROOT \
+#--target=$ID_TARGET  \
+#--with-build-sysroot=$R/usr  \
+#--with-build-libsubdir=$R/usr/lib \
+
+
+LDFLAGS="$LDFLAGS -L$R/lib$LIBDIRSUFFIX -L$R/usr/lib$LIBDIRSUFFIX "
+PATH="$R/usr/bin:$PATH" \
+make configure-host 
+
+
+LDFLAGS="$LDFLAGS" \
+PATH="$R/usr/bin:$PATH" \
+make cross-compiling=yes \
+
+#tooldir=$R/usr
+
+LDFLAGS="$LDFLAGS" \
+PATH="$R/usr/bin:$PATH" \
+make  DESTDIR=$PKG   install 
+
+
+#make -C ld clean
+#make -C ld LIB_PATH=/usr/lib$LIBDIRSUFFIX:/lib$LIBDIRSUFFIX
+#cp -v ld/ld-new $PKG/usr/bin
+
+
+for i in addr2line ar as c++filt elfedit gprof ld ld.bfd nm  objcopy objdump ranlib readelf size strings strip ;do
+    if  test -f $PKG/usr/bin/$TOOLS_PREFIX-$i  ; then 
+	 test -f $PKG/usr/bin/$i || cd $PKG/usr/bin && ln -sf $TOOLS_PREFIX-$i $i
+    else 
+	test -f $PKG/usr/$TOOLS_PREFIX/bin/$i &&  cd $PKG/usr/bin && ln -sf ../$TOOLS_PREFIX/bin/$i $i
+    fi
+done
+
+
+cd $PKG
+/sbin/makepkg -l y -c n $P/$GNU_BINUTILS-$TARGET_MARCH-st1.txz

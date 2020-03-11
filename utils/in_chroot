@@ -1,0 +1,15 @@
+#!/bin/sh -e
+R=$PWD
+
+echo "Entering chroot..."
+su -c \
+    "mount --rbind /dev $R/dev &&  \
+    mount --rbind /proc $R/proc  && \
+    mount --rbind /sys $R/sys  && \
+    SHELL=/bin/bash chroot $R /bin/sh && \
+    \
+    umount -fil  $R/dev  && \
+    umount -fil  $R/proc && \
+    umount -fil  $R/sys && \
+    umount -fil  $R/mnt "
+

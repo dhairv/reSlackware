@@ -1,0 +1,42 @@
+#!/bin/sh
+unset SLKCFLAGS SLKLDFLAGS
+export SLKCFLAGS="$CFLAGS"
+export SLKLDFLAGS="$LDFLAGS"
+
+cd $SRC/d/perl
+ln -sf perl0.SlackBuild perl.SlackBuild
+
+cd $TOP
+unset PKGNAME
+for PKGNAME in binutils perl python3 m4 autoconf automake make bison  help2man libtool file  ; do
+    for filename in $(find $SRC -name "$PKGNAME".SlackBuild) ; do
+	BLDNAME=$(echo $filename | rev | cut -f 1 -d / | rev ) 
+	bash $filename
+	if [  $? == 0  ] ; then
+	    echo "$filename" >> $TOP/order_build.stamp
+	    cd $TMP
+	    upgradepkg "$TMP/$PKGNAME"-*.t?z ||  installpkg "$TMP/$PKGNAME"-*.t?z
+	fi
+    done
+done
+
+##################################################################################
+cd $TOP/01_tools/gcc; . ./gcc.2build gcc-9.2.0 gmp-6.1.2 mpfr-4.0.2 mpc-1.1.0
+removepkg_all "gcc-"
+/sbin/installpkg $TMP/gcc-9.2.0-$ARCH-st1.txz
+
+cd /usr/bin
+for i in addr2line  ar as c++ c++filt elfedit g++ gcc gcc-ar gcc-nm gcc-ranlib \
+    gprof ld ld.bfd nm objcopy objdump ranlib readelf size strings strip; do
+    if test -f $i ; then
+	 ln -sf $i $ID_TARGET-$i
+    fi
+done
+cd /usr/bin ; ln -sf gcc rawcc
+
+bash $SRC/a/gawk/gawk.SlackBuild
+removepkg_all "gawk-" && installpkg $TMP/gawk-*.t?z
+###################################################################################
+bash $SRC/l/glibc/glibc.SlackBuild
+echo "glibc-OK"  >> $TOP/order_build.stamp
+exit 1

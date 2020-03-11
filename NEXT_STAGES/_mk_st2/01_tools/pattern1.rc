@@ -1,0 +1,16 @@
+#!/bin/sh -e
+PKGNAME=$1
+unpack_src $SRC $PKGNAME $TMP
+
+rm  -rf  $TMP/$PKGNAME-build
+mkdir -p $TMP/$PKGNAME-build
+
+cd $TMP/$PKGNAME-build
+FORCE_UNSAFE_CONFIGURE=1 \
+CFLAGS="$CFLAGS" \
+../$PKGNAME/configure \
+    --prefix=/usr
+
+#LDFLAGS="$LDFLAGS" \
+make CFLAGS="$CFLAGS" 
+make DESTDIR=$R install

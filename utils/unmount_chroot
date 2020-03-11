@@ -1,0 +1,8 @@
+#!/bin/sh -e
+R=$PWD
+if [ $UID -ne 0 ]; then
+  su -c $0
+  exit $?
+fi
+
+su -c  "umount -fil  $R/dev && umount -fil  $R/proc && umount -fil $R/sys "

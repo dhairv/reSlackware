@@ -1,0 +1,39 @@
+#!/bin/sh -e
+BUSYBOX=$1
+unset CWD; CWD=$PWD
+unset PKG; PKG=$TMP/$BUSYBOX-package
+unpack_src $SRC $BUSYBOX $TMP
+cd $TMP/$BUSYBOX
+bzcat $CWD/patches/*.patch* | patch -p1
+cat $CWD/patches/*.patch* | patch -p1
+bzcat $CWD/patches/*.diff*  | patch -p1
+zcat $CWD/patches/*.diff*  | patch -p1
+cp $CWD/configs/.config  .config
+
+CFLAGS="$CFLAGS -static" \
+export CROSS_COMPILER_PREFIX="$R/usr/bin/$TOOLS_PREFIX-" \
+export CROSS_COMPILE="$R/usr/bin/$TOOLS_PREFIX-" \
+COLLECT_GCC="$R/usr/bin/$TOOLS_PREFIX-gcc" \
+make allnoconfig oldconfig   KCONFIG_ALLCONFIG=./.config
+
+LDFLAGS="$LDFLAGS --static" \
+make 
+
+rm -rf $PKG && mkdir -p $PKG/usr/bin
+cp -p busybox $PKG/usr/bin
+cd $PKG/usr/bin
+for i in $(./busybox --list);do
+    test -e $i || ln -s busybox $i
+done
+ln -sf busybox bash
+ln -sf bash sh
+
+mkdir -p $PKG/bin &&  cd $PKG/bin 
+ln -sf ../usr/bin/sh sh
+
+mkdir $PKG/install
+cp $CWD/doinst.sh $PKG/install/
+cp $CWD/install_busybox $PKG/bin
+
+cd $PKG
+/sbin/makepkg -l y -c n $P/$BUSYBOX-$TARGET_MARCH-st1.txz

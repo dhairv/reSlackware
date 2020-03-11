@@ -1,0 +1,33 @@
+#!/bin/sh -e
+GNU_BINUTILS=$1
+unset CWD; CWD=$PWD
+#unpack_src $SRC $GNU_BINUTILS $TMP
+unset PACKAGENAME; PAKAGENAME=libiberty
+cd $TMP/$GNU_BINUTILS
+
+rm -rf $TMP/$GNU_BINUTILS/$PAKAGENAME-build
+mkdir -p $TMP/$GNU_BINUTILS/$PAKAGENAME-build
+cd $TMP/$GNU_BINUTILS/$PAKAGENAME-build
+rm -rf $TMP/$GNU_BINUTILS/$PAKAGENAME-package
+mkdir -p $TMP/$GNU_BINUTILS/$PAKAGENAME-package
+
+sh ../$PAKAGENAME/configure  \
+    --prefix=/usr \
+    --disable-multilib \
+    --enable-static  --enable-shared \
+    --disable-nls \
+    --disable-libstdcxx-pch  \
+    --with-cross-host=$ID_HOST  \
+    --with-newlib  \
+ --enable-install-libiberty \
+    --build=$ID_BUILD --host=$ID_HOST --target=$TOOLS_PREFIX  
+
+make clean
+PATH="$R/usr/bin:$PATH" \
+make  -j $CPU_CORES cross-compiling=yes
+make DESTDIR=$TMP/$GNU_BINUTILS/$PAKAGENAME-package/usr install
+make INSTALL_DEST=$TMP/$GNU_BINUTILS/$PAKAGENAME-package install_to_toolldir || true
+
+
+cd $TMP/$GNU_BINUTILS/$PAKAGENAME-package
+/sbin/makepkg -l y -c n $P/$GNU_BINUTILS-$PAKAGENAME-$TOOLS_PREFIX-st0-1.txz

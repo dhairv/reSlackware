@@ -1,0 +1,73 @@
+#!/bin/sh
+#!/bin/echo "This file is sourced, not run"
+
+# use as: unpack_src [src_dirname] [src_name] [dir_2_unpack]
+unpack_src() {
+pwd_begin=$PWD
+
+if [ ! -d  $1 ]; then
+	echo "no search src directory \$1"
+	exit 2
+fi
+if [ -z  $3 ]; then
+    echo "not define dir to extract \$1"
+    exit 2
+fi
+
+cd $1
+PKGNAME_VER=$2
+unset cmd
+for filetype in  tar.xz tar.lz tar.gz tar.bz2 tar.xz tar.lzma txz zip tar; do
+    for filename in $(find $1 -name $PKGNAME_VER.$filetype ); do
+	#Case choice metod extract by type of file archive
+        case "$filename" in
+	    *tar.gz)
+		cmd="tar --gzip -xf $filename" && break ;;
+	    *tar.bz2)
+		cmd="tar --bzip2 -xf $filename" && break;;
+	    *tar.xz)
+		cmd="tar -Jxf 	$filename" && break;;
+	    *tar.txz)
+		cmd="xz -d -f	 $filename" && break;;
+	    *.txz)
+		cmd="xz -d -f	$filename" && break;;
+	    *tar.lzma)
+		cmd="lzma -d -f $filename" && break;;
+	    *tar)
+		cmd="tar -xf 	$filename" && break;;
+	    *zip)
+		cmd="unzip 	$filename" && break;;
+	    *tar.lz)
+		cmd="tar --lzip -xf	 $filename" && break;;
+        esac
+    done
+done
+
+if [ -n "$cmd" ]; then
+    cd $3
+    DIR_2_EXTRACT=$PWD
+
+    if [ -d  "$DIR_2_EXTRACT/$2" ]; then
+	rm -rf $DIR_2_EXTRACT/$2	#Remove dir for extract
+    fi
+    
+    cd $DIR_2_EXTRACT
+
+    echo "   $cmd $FILE_2_UNPACK"
+    $cmd 		#-command: extract to  $(DIR_2_EXTRACT)
+
+else 
+	echo "no src files $2 in the directory $1"
+fi
+
+unset cmd
+cd $pwd_begin
+
+}
+
+removepkg_all() {
+cd /var/adm/packages
+for package in $(ls | grep '\<$1') ; do
+    /sbin/removepkg $package
+done
+}

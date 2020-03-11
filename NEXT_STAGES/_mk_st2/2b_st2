@@ -1,0 +1,77 @@
+#!/bin/sh -e
+set -e -x
+.  ./utils/functions
+
+unset TOP TMP SRC R P
+unset ARCH HOST BUILD TARGET
+unset HOST_ARCH BUILD_ARCH TARGET_ARCH #!!
+unset HOST_MARCH BUILD_MARCH TARGET_MARCH
+unset ID_HOST ID_BUILD ID_TARGET TOOLS_PREFIX 
+unset CFLAGS CXXFLAGS HOSTCC HOST_CFLAGS BUILD_CFLAGS TARGET_CFLAGS
+unset BUILD64 BUILD32 LDFLAGS LIBDIRSUFFIX NUMJOBS
+
+export R="/"
+export TOP=$PWD
+export SRC=$TOP/source/
+ln -sf /tmp $TOP/tmp
+export TMP=$TOP/tmp
+
+export TARGET_MARCH=x86_64
+export ARCH=$TARGET_MARCH HOST_MARCH=$TARGET_MARCH BUILD_MARCH=$TARGET_MARCH
+export ID_TARGET=$TARGET_MARCH-slackware-linux
+export ID_BUILD=$ID_TARGET
+export ID_HOST=$ID_TARGET
+export TOOLS_PREFIX=$ID_TARGET
+export TARGET_CFLAGS=" -Wno-error -m64 -O2 -m128bit-long-double -fPIC -rdynamic "
+export HOST_CFLAGS=$TARGET_CFLAGS
+export BUILD_CFLAGS=$HOST_CFLAGS
+
+export BUILD64="-m64" BUILD32="-m64" LIBDIRSUFFIX="64" NUMJOBS="-j7"
+export CFLAGS=$HOST_CFLAGS
+export CXXFLAGS="$CFLAGS "
+export LDFLAGS=""
+export PATH="/sbin:/usr/sbin:/usr/bin:/bin:/usr/local/bin"
+
+## Далее, если в начале строки один # -то "исполняемая", предназначено для "раскомментирования".
+## Два и больше ## - это комментарии, и строку не трогаем.
+## ! Важно !, двигаться "по_шажку", т.е. раскомментировали "исполняемую" строку и запустили 2b_st2
+#### cd _STAGE_2 && . /in_chroot
+#### cd _mk_st2 && . ./2b_st2
+## ,если все ОК, то закомментировали и перешли к следующей "исполняемой"
+
+cd $TOP
+#. $TOP/01_tools/mk_pkgtools ##- готовим минимальный набор для makepkg/installpkg/..
+## !Здесь обязательно!, выйти/зайти chroot, т.к. заменен sh(ash) на bash
+
+#. $TOP/01_tools/mk_tools ##- готовим gnu-tools (binutils,gcc, make ... и! новую glibc)
+
+## !Здесь обязательно!,выйти из chroot и установить glibc.
+## ROOT=/_STAGE_2 /_STAGE_2/sbin/removepkg /_STAGE_2/var/log/packages/glibc-*
+## ROOT=/_STAGE_2 /_STAGE_2/sbin/installpkg --root=/_STAGE_2 /_STAGE_2/tmp/glibc-*.txz
+## Именно здесь подразумеваемый _STAGE_1 полностью окончен.
+## Прощай reSlackware и снова здравствуй Slackware!
+######################################################################################
+## Далее, компилируем и устанавливаем пакеты Slackware
+#. $TOP/02_core/mk_slkblds-1
+#. $TOP/02_core/mk_slkblds-2
+#. $TOP/02_core/mk_slkblds-3
+
+cd $TOP
+unset TOP TMP SRC R P
+unset ARCH HOST BUILD TARGET
+unset HOST_ARCH BUILD_ARCH TARGET_ARCH
+unset HOST_MARCH BUILD_MARCH TARGET_MARCH
+unset ID_HOST ID_BUILD ID_TARGET TOOLS_PREFIX 
+unset CFLAGS CXXFLAGS HOSTCC HOST_CFLAGS BUILD_CFLAGS TARGET_CFLAGS
+unset BUILD64 BUILD32 LDFLAGS LIBDIRSUFFIX NUMJOBS
+exit
+## OK. Всё. exit
+## Послесловие(послескриптие):
+## Осталось подмонтировать подготовленный раздел и установить наш Slackware-current (base)
+#### mount /dev/sd?? /mnt/sd??
+#### ROОT=/mnt/sd?? installpkg --root=/mnt/sd?? $TMP/*.txz
+## добавить kernel, kernel-modules, kernel-firmware на /mnt/sd??/
+## не забыть поправить /mnt/sd??/etc/fstab для загрузки
+## изменить root passwd на /mnt/sd??/
+## суметь заставить загрузчик грузиться с /dev/sd??  и ... загузиться с оного
+## далее к _STAGE_3, что собственно - продолжение компиляции ветки Slackware.

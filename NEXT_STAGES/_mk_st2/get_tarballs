@@ -1,0 +1,23 @@
+#!/bin/sh
+SRC=./source
+mkdir -p $SRC
+
+MIRROR=mirror.yandex.ru/slackware/slackware64-current
+#MIRROR=mirror.yandex.ru/slackware/slackware-14.1
+
+cd $SRC
+rsync -rv -t  rsync://$MIRROR/source/a  .
+rsync -rv -t  rsync://$MIRROR/source/ap .
+rsync -rv -t  rsync://$MIRROR/source/d 	.
+rsync -rv -t  rsync://$MIRROR/source/n 	.
+rsync -rv -t  rsync://$MIRROR/source/l 	.
+## дочтаточно для _STAGE2
+wget ftp://ftp.gnu.org/gnu/gmp/gmp-6.1.2.tar.bz2
+
+#rsync -rv -t  rsync://$MIRROR/source/k .
+#rsync -rv -t  rsync://$MIRROR/source/t .
+#rsync -rv -t  rsync://$MIRROR/source/tcl .
+#rsync -rv -t  rsync://$MIRROR/source/x .
+#rsync -rv -t  rsync://$MIRROR/source/xap .
+#rsync -rv -t  rsync://$MIRROR/source/xfce .
+

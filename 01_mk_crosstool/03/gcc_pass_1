@@ -1,0 +1,76 @@
+#!/bin/sh -e
+GCC4=$1
+LIB_GMP=$2
+LIB_MPFR=$3
+LIB_MPC=$4
+unset CWD; CWD=$PWD
+unpack_src $SRC $GCC4 $TMP
+unpack_src $SRC $LIB_GMP $TMP
+unpack_src $SRC $LIB_MPFR $TMP
+unpack_src $SRC $LIB_MPC $TMP
+mv $TMP/$LIB_GMP $TMP/$GCC4/gmp
+mv $TMP/$LIB_MPFR $TMP/$GCC4/mpfr
+mv $TMP/$LIB_MPC $TMP/$GCC4/mpc
+unset PKG; PKG=$TMP/$GCC4-package
+
+cd $TMP/$GCC4
+bzcat $CWD/patches/*.patch* | patch -p1
+bzcat $CWD/patches/*.diff*  | patch -p1
+zcat $CWD/patches/*.patch* | patch -p1
+zcat $CWD/patches/*.diff*  | patch -p1
+
+rm -rf zlib
+
+#touch $R/usr/include/limits.h
+
+_headerDir="$R/usr/include"
+sed -e "s|^\(CROSS_SYSTEM_HEADER_DIR =\).*|\1 ${_headerDir}|" -i gcc/Makefile.in
+unset _headerDir
+
+rm  -rf  $TMP/$GCC4-build
+mkdir -p $TMP/$GCC4-build
+cd $TMP/$GCC4-build
+
+CFLAGS="$CFLAGS  -static " \
+../$GCC4/configure \
+    --prefix=/usr  \
+    --disable-shared  \
+    --disable-bootstrap \
+    --disable-nls  \
+    --enable-languages=c   \
+    --enable-initfini-arrays \
+    --disable-decimal-float --disable-threads --disable-libmudflap \
+    --disable-libssp --disable-libgomp --disable-libquadmath --disable-libatomic \
+    --without-ppl --without-isl --without-cloog   \
+    --with-newlib --without-headers --with-headers=no  \
+--build=$ID_HOST  --host=$ID_HOST --target=$ID_TARGET \
+    --with-mpfr-include=$(pwd)/mpfr/src  --with-mpfr-lib=$(pwd)/mpfr/src/.libs  \
+--with-local-prefix=/$R \
+--disable-multilib  \
+--disable-libstdcxx \
+--with-sysroot=$R 
+
+#--disable-libmpx  --disable-libvtv  --disable-libstdcxx \
+
+make  -j $CPU_CORES  gcc_cv_libc_provides_ssp=yes
+
+rm -rf $PKG
+mkdir -p  $PKG/lib
+mkdir -p  $PKG/lib$LIBDIRSUFFIX
+
+make DESTDIR=$PKG install
+
+cd $TMP/$GCC4-build/gmp
+make DESTDIR=$PKG install
+
+cd $TMP/$GCC4-build/mpfr
+make DESTDIR=$PKG install
+
+cd $TMP/$GCC4-build/mpc
+make DESTDIR=$PKG install
+
+cd $PKG/usr/bin ; ln -sf ../libexec/gcc/*/*/cc1   cc1
+cd $PKG/usr/lib/gcc/*/*/ ; ln -sf libgcc.a libgcc_eh.a &&  ln -sf libgcc.a libgcc_s.a
+
+cd $PKG
+/sbin/makepkg -l y -c n $P/$GCC4-$TOOLS_PREFIX-st0-1.txz

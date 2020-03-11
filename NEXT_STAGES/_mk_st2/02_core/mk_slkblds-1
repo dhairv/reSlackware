@@ -1,0 +1,31 @@
+#!/bin/sh
+unset SLKCFLAGS SLKLDFLAGS PKGNAME
+export SLKCFLAGS="$CFLAGS"
+export SLKLDFLAGS="$LDFLAGS"
+
+cd $SRC/d/perl
+ln -sf perl1.SlackBuild perl.SlackBuild
+
+cd /usr/bin
+ln -sf python3 python
+ln -sf python3 python2
+
+cd $TOP
+#??bc
+for PKGNAME in aaa_base etc lzma lzo gzip bzip2 zlib lzip xz \
+    cpio diffutils libtermcap aaa_elflibs sharutils sysfsutils \
+    patch m4  perl texinfo  bison flex sed  \
+    autoconf automake  \
+    lsof nasm popt ncurses less texinfo less groff \
+;do
+    for filename in $(find $SRC -name "$PKGNAME".SlackBuild) ; do
+	BLDNAME=$(echo $filename | rev | cut -f 1 -d / | rev ) 
+	bash $filename
+	if [  $? == 0  ] ; then
+	    echo "$filename" >> $TOP/order_build.stamp
+	    cd $TMP
+	    /sbin/installpkg "$TMP/$PKGNAME-"*.t?z || /sbin/upgradepkg "$TMP/$PKGNAME-"*.t?z
+	fi
+    done
+done
+

@@ -1,0 +1,26 @@
+#!/bin/sh -e
+LINUX_KERNEL=$1
+unset CWD; CWD=$PWD
+unset PKG; PKG=$TMP/kernel_headers-$LINUX_KERNEL
+unpack_src $SRC $LINUX_KERNEL $TMP
+cd $TMP/$LINUX_KERNEL/
+#bzcat $CWD/patches/*.patch* | patch -p1
+#bzcat $CWD/patches/*.diff*  | patch -p1
+#make mrproper
+
+cp -p $CWD/configs/kernel.config "$TMP/$LINUX_KERNEL/.config"
+make ARCH="$TARGET_MARCH"  headers_check  
+
+rm -rf $PKG && mkdir -p $PKG/usr/include/
+make -j $CPU_CORES  \
+  ARCH="$TARGET_MARCH"  \
+  INSTALL_HDR_PATH=$(pwd)/dest  \
+  headers_install  \
+  CROSS_COMPILE="$ID_TARGET-"  \
+
+cp -rpv dest/include/* "$PKG/usr/include/"
+find "$PKG/usr/include" -name ".install" -print0 -or -name "..install.cmd" -print0 | xargs -0 rm
+
+
+cd $PKG
+/sbin/makepkg -l y -c n $P/kernel-headers-$LINUX_KERNEL.txz

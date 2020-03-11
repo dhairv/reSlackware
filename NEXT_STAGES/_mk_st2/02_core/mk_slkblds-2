@@ -1,0 +1,30 @@
+#!/bin/sh
+unset SLKCFLAGS SLKLDFLAGS
+export SLKCFLAGS="$CFLAGS"
+export SLKLDFLAGS="$LDFLAGS"
+cd $TOP
+
+unset PKGNAME
+for PKGNAME in pcre  ncurses libelf libffi gettext gperf  libaio  gawk \
+    bash coreutils  findutils help2man  libtool  \
+    libtermcap texinfo slang expat gettext-tools grep openssl \
+    libgpg-error libassuan swig libgcrypt libmcrypt libksba  \
+    nettle gnupg npth gnupg2  gpgme \
+    libxml2 libxslt shadow sysvinit-functions sysvinit-scripts \
+    libmcrypt dev86  libffi ninja python3 \
+    libmcrypt libffi python-setuptools python-pip meson \
+    readline pcre2 libssh2 curl git libffi libcap util-linux pkg-config \
+    elfutils glib2 gamin flex  gobject-introspection attr acl  \
+    kmod eudev libusb libusb-compat  usbutils  eudev  intltool \
+;do
+    for filename in $(find $SRC -name "$PKGNAME".SlackBuild) ; do
+	BLDNAME=$(echo $filename | rev | cut -f 1 -d / | rev ) 
+	bash $filename
+	if [  $? == 0  ] ; then
+	    echo "$filename" >> $TOP/order_build.stamp
+	    cd $TMP
+	    /sbin/installpkg "$TMP/$PKGNAME"*.t?z || /sbin/upgradepkg "$TMP/$PKGNAME"*.t?z
+	fi
+    done
+done
+
